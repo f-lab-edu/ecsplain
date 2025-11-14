@@ -1,0 +1,23 @@
+# git 관련
+.git
+.gitignore
+
+# 빌드 결과 / 의존성
+node_modules
+dist
+build
+
+# 환경 변수 / 비밀
+.env
+.env.*
+*.pem
+*.key
+secrets/
+secret/
+
+# 도커/기타
+Dockerfile
+.dockerignore
+*.log
+.vscode
+.idea
