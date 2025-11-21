@@ -2,25 +2,30 @@ version: "3.9"
 services:
   rag_api:
     build:
-      context: ./rag_api
+      context: ..
+      dockerfile: ./service/rag_api/Dockerfile
     container_name: rag-api
     env_file:
       - ./rag_api/.env
     volumes:
-      - ./data:/app/data
-      - ./chroma_db:/app/chroma_db
+      - ../data:/app/data
+      - ../chroma_db:/app/chroma_db
     ports:
       - "8000:8000"
-    command: ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
+    command: ["python", "-m", "uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
     restart: unless-stopped
 
   rag_web:
     build:
       context: ./rag_web
-    container_name: rag_web
+      dockerfile: Dockerfile
+    container_name: rag-web
     ports:
       - "5173:5173"
     depends_on:
       - rag_api
     command: ["npm","run","dev"]
     restart: unless-stopped
+    volumes:
+      - /app/node_modules
+      - /app

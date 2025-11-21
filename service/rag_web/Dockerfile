@@ -1,20 +1,23 @@
 # frontend/Dockerfile
 FROM node:20-alpine
 
-# non-root 유저 생성
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts || npm install --ignore-scripts
 
-COPY rag_web/src ./src
-COPY rag_web/index.html ./index.html
-COPY rag_web/tsconfig.json ./tsconfig.json
-COPY rag_web/vite.config.ts ./vite.config.ts
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && chown -R appuser:appgroup /app
+
+
+COPY src ./src
+COPY index.html ./index.html
+COPY tsconfig.json ./tsconfig.json
+COPY vite.config.ts ./vite.config.ts
 
 # non-root user로 실행
+RUN chown -R appuser:appgroup /app
+
 USER appuser
 
 EXPOSE 5173
