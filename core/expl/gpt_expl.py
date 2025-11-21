@@ -48,17 +48,6 @@ def main(config):
     write_data(config, data)
 
 
-
-# def get_client(config):
-#     if config.api_key is not None:
-#         client = openai.OpenAI(api_key=config.api_key)
-#     elif os.environ.get('OPENAI_API_KEY', None) is not None 
-#         client = openai.OpenAI(
-#             api_key= os.environ.get('OPENAI_API_KEY')
-#         )
-#     else:
-#         raise Excpetion('open ai api key is necessary')
-
 def read_data(config):
     with open(config.expl_fp, 'r') as read_fp:  
         data = list()
@@ -81,55 +70,6 @@ def write_data(config, data):
 
     with open(config.save_fp, 'w', encoding='utf-8') as write_fp: 
         json.dump(data, write_fp, ensure_ascii=False, indent=4)
-
-
-# def construct_prompt(prompt_template, instance):
-#     source = instance['source']
-#     prompt = prompt_template.replace('{Document}', source)
-
-#     return prompt
-
-# def gen_response(config, prompt):
-#     respo_text = None 
-#     while True:
-#         try:
-#             _response = client.responses.create(
-#                 model = config.model,
-#                 input = cur_prompt,
-#                 reasoning = { 'effort': 'high' } 
-#             )
-#             time.sleep(0.5)
-#             respo_text = _response.output_text
-#             break
-#         except Exception as e:
-#             print(e)
-#             if ("limit" not in str(e)): break 
-#             time.sleep(2)
-    
-#     return respo_text
-
-
-# def main(config):
-#     client = get_client(config)
-#     expl = get_explanation(config)
-#     prompt_template = open(config.prompt_path).read()
-
-
-#     data = []
-#     succ_cnt, ign_cnt = 0, 0  
-#     for instance in tqdm.tqdm(expl):
-#         prompt = construct_prompt(prompt_template, instance)
-#         explanation = gen_explanation(config, prompt)
-#         if explanation is not None: 
-#             instance['prompt'], instance['explanation'] = prompt, explanation
-#             data.append(instance)
-#             succ_cnt += 1 
-#         else: 
-#             ign_cnt += 1 
-
-#     write_data(config, data)
-
-
 
 if __name__ == '__main__':
     config = get_config()

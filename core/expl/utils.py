@@ -97,9 +97,6 @@ def get_answer(query):
     sources =[
         {'source': d.metadata.get('source'), 'page': d.metadata.get('page')} for d in docs 
     ]
-    print(f'QUERY :{query}')
-    print(f'ANSWER: {answer}')
-    print(f'SOURCES: {sources}')
 
     return answer, sources
 
