@@ -1,0 +1,8 @@
+# storage/retrieval_pool/pool.yaml
+
+default:
+  description: "일반 문서 검색 풀"
+  data_dir: "data/retrieval/retrieval_pool/default"
+  vectorstore_dir: "storage/vectorstore/chroma_db/default"
+  search_type: "similarity"
+  k: 5
