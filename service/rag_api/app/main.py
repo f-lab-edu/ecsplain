@@ -10,7 +10,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 from core.expl.config import config
-from core.expl.utils import ensure_chain, get_answer
+from core.expl.utils import _ensure_chain, get_answer
 
 app = FastAPI(title="RAG API", version="0.1.0")
 
@@ -24,7 +24,7 @@ app.add_middleware(
 )
 
 def _ensure_services():
-    ensure_chain(config)
+    _ensure_chain(config)
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -84,7 +84,7 @@ def construct_chain(config):
         | output_parser
     )
 
-def ensure_chain(config):
+def _ensure_chain(config):
     set_models(config)
     construct_chain(config) 
 
