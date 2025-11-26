@@ -20,7 +20,7 @@ def get_config():
         '--data_dir', type=str, default=None
     )
     argparser.add_argument(
-        '--chroma_dir', type=str, default=None
+        '--chroma_dir', type=str, default='../../storage/vectorstore/chroma_db'
     )
     argparser.add_argument(
         '--openai_api_key', type=str, default=None
@@ -89,7 +89,6 @@ def create_documents(data: List[Dict]) -> List[Document]:
     return docs 
 
 def build_vectorstore(config, docs: List[Document]):
-    import pdb;pdb.set_trace()
     chroma_dir = Path(config.chroma_dir)
     chroma_dir.mkdir(parents=True, exist_ok=True)
     target_dir = chroma_dir / Path(config.retrieval_pool_type)
