@@ -29,6 +29,140 @@ HEADERS = {
     )
 }
 
+def read_directory_files(config):
+    data = list()
+    file_names = os.listdir(config.read_directory_path)
+    for file_name in file_names: 
+        file_path = os.path.join(
+            config.read_directory_path, file_name
+        )
+        with open(file_path, 'r', encoding='utf-8') as read_fp: 
+            for line in read_fp.readlines():
+                js = json.loads(line)
+                data.append(js)
+    
+    return data 
+
+
+def get_args(): 
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        '--read_directory_path', type = str, default = './stage_3_filtered_newses' 
+    )
+    argparser.add_argument(
+        '--write_directory_path', type = str, default = './stage_4_retrieval_augment'
+    )
+
+    argparser.add_argument(
+        '--prompt_fp', type=str, default='./prompt_template/retrieval_augment.txt'
+    )
+    argparser.add_argument(
+        '--qgen_model', type=str, default='gpt-4o'
+    )
+
+    argparser.add_argument(
+        '--article_num', type=int, default=10
+    )
+
+    argparser.add_argument(
+        '--test_sample_num', type=int, default=0
+    )
+
+    return argparser.parse_args()
+
+def generate_query(config, llm_client, prompt):
+    if 'gpt5' in config.qgen_model:
+        completion = llm_client.chat.completions.create(
+            model = config.qgen_model, 
+            messages = [
+                {'role': 'user', 'content': prompt}
+            ],
+            reasoning_effort = 'low',
+            response_format = {'type': 'json_object'}
+        )
+    elif 'gpt' in config.qgen_model:
+        completion = llm_client.chat.completions.create(
+            model = config.qgen_model,
+            messages = [
+                {'role': 'user', 'content': prompt}
+            ],
+            response_format = {'type': 'json_object'}
+        )
+    else:
+        raise ValueError(f'{config.qgen_model} is not supported')
+
+    time.sleep(0.5)
+
+    return completion
+
+
+def generate_queries(config, llm_client, prompt):
+    while True:
+        try:
+            query = generate_query(config, llm_client, prompt)
+            break 
+        except Exception as e: 
+            print(e)
+            if ('limit' in str(e)):
+                time.sleep(2)
+            else: 
+                return None 
+    
+    return query.choices[0].message.content
+
+def get_queries(config, llm_client, prompt):
+    while True:
+        try:
+            raw_queries = generate_queries(config, llm_client, prompt)
+            if raw_queries is None: continue 
+            queries = json.loads(raw_queries.strip())['queries']
+            break
+        except Exception as e: 
+            print(e)
+            print(raw_queries)
+            exit(1)
+
+    return queries
+
+def prepare_url(base_url, category, url_args=None, restful_type='get'):
+    if restful_type == 'get':
+        url_args['query'] = urllib.parse.quote(url_args['query'])
+        str_args = '&'.join([f'{k}={url_args[k]}' for k in url_args])
+        
+        url = f"{base_url}/{category}?{str_args}"
+    else: 
+        raise ValueError(f'{restful_type} is not supported')
+    
+    return url, url_args
+
+def construct_request(url, data=None):
+    if data is None:
+        request = urllib.request.Request(url)
+        
+        request.add_header('X-Naver-Client-Id', CLIENT_ID)
+        request.add_header('X-Naver-Client-Secret', CLIENT_SECRET)
+    else: 
+        request = urllib.request.Request(url, data=data)
+
+        request.add_header('X-Naver-Client-Id', CLIENT_ID)
+        request.add_header('X-Naver-Client-Secret', CLIENT_SECRET)
+        request.add_header("Content-Type", "application/x-www-form-urlencoded")
+
+    return request
+
+def get_response(base_url, category, args): 
+    url, _ = prepare_url(base_url, category, args, restful_type='get')
+
+    request = construct_request(url)
+    response = urllib.request.urlopen(request)
+
+    args.update({
+        'url': url, 'data': None 
+    })
+
+    return response 
+
+
 def is_naver_news(url: str) -> bool: 
     try:
         host = urlparse(url).hostname or "" 
@@ -55,9 +189,15 @@ def make_naver_article_id(url: str) -> str:
         return f"naver-{oid}-{aid}" 
     
     return f"naver-{parsed.netloc}{parsed.path}"
-        
 
+def parse_to_kst(dt_str): 
+    dt = dateutil.parser.parse(dt_str)
+    if dt.tzinfo is None: 
+        dt = dt.replace(tzinfo=KST)
+    else: 
+        dt = dt.astimezone(KST)
     
+    return dt
 
 def crawl_naver_article(url: str) -> dict:
     """
@@ -142,174 +282,75 @@ def crawl_naver_article(url: str) -> dict:
         "published_at": published_at,
     }
 
-
-def parse_to_kst(dt_str): 
-    dt = dateutil.parser.parse(dt_str)
-    if dt.tzinfo is None: 
-        dt = dt.replace(tzinfo=KST)
-    else: 
-        dt = dt.astimezone(KST)
-    
-    return dt
-
-
-def get_args(): 
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        '--read_directory_path', type = str, default = './stage_3_filtered_newses' 
-    )
-    argparser.add_argument(
-        '--write_directory_path', type = str, default = './stage_4_retrieval_augment'
-    )
-
-    argparser.add_argument(
-        '--prompt_fp', type=str, default='./prompt_template/retrieval_augment.txt'
-    )
-    argparser.add_argument(
-        '--qgen_model', type=str, default='gpt-4o'
-    )
-
-    argparser.add_argument(
-        '--article_num', type=int, default=10
-    )
-
-    argparser.add_argument(
-        '--test_sample_num', type=int, default=0
-    )
-
-    return argparser.parse_args()
-
-
-def generate_queries(config, llm_client, prompt):
-    while True:
+def crawl_naver_articles(config, res_body):
+    articles = list() 
+    for article_id, article in enumerate(res_body['items']): 
+        if len(articles) >= config.article_num: break
         try:
-            _response = llm_client.responses.create(
-                model = config.qgen_model, 
-                input = prompt, 
-                reasoning = { 'effort': 'low' }
-            )
-            time.sleep(0.5)
-
-            query = _response.output_text 
-            break 
+            if not article['link']: continue 
+            if not is_naver_news(article['link']): 
+                print("[SKIP NON-NAVER]", article['link'])
+                continue
+            crawled = crawl_naver_article(article['link'])
+            article.update({
+                'id': crawled['id'], 'content': crawled
+            })
+            articles.append(article)
         except Exception as e: 
-            print(e)
-            if ('limit' in str(e)):
-                time.sleep(2)
+            print("crawl error:", e, "url:", article.get('link'))
+    
+    return articles
+
+
+def crawl(config, url_args):
+    articles = list() 
+    start_id, error_cnt = 1, 0  
+    while (start_id < 1000) and (len(articles) < config.article_num):
+        try:
+            url_args['start'] = start_id
+            response = get_response(BASE_URL, 'news', url_args)
+            res_code = response.getcode() 
+
+            if res_code == 200: 
+                res_body = json.loads(response.read().decode())
+                articles += crawl_naver_articles(config, article)
+
+                start_id = start_id + DISPLAY_NUM
+                error_cnt = 0 
             else: 
-                break 
-    
-    return query.split('QUERY:')[-1].replace("'", '"')
-
-def get_queries(config, llm_client, prompt):
-    while True:
-        try:
-            raw_queries = generate_queries(config, llm_client, prompt)
-            queries = json.loads(raw_queries.strip())
-            break
+                print(f'ERROR CODE: {res_code}')
         except Exception as e: 
-            print(e)
-            print(raw_queries)
-            exit(1)
-
-    return queries
-
-def construct_url(base_url, category, url_args):
-    #url_args['query'] = urllib.parse.quote(url_args['query'])
-    str_args = '&'.join([f'{k}={url_args[k]}' for k in url_args])
+                print(e)
+                error_cnt += 1 
+                if error_cnt >= ERR_CNT_THR: break 
+                continue 
     
-    url = f"{base_url}/{category}?{str_args}"
-    
-    return url
-
-def construct_request(url):
-    request = urllib.request.Request(url)
-    request.add_header('X-Naver-Client-Id', CLIENT_ID)
-    request.add_header('X-Naver-Client-Secret', CLIENT_SECRET)
-
-    return request
-
-def get_response(base_url, category, args): 
-    url = construct_url(base_url, category, args)
-
-    request = construct_request(url)
-    response = urllib.request.urlopen(request)
-
-    args['url'] = url
-
-    return response 
-
-
+    return articles
 
 
 def main(config):
-    data = list()  
-    file_names = os.listdir(config.read_directory_path)
-    for file_name in file_names: 
-        file_path = os.path.join(
-            config.read_directory_path, file_name
-        )
-        with open(file_path, 'r', encoding='utf-8') as read_fp: 
-            for line in read_fp.readlines():
-                js = json.loads(line)
-                data.append(js)
-
+    data = read_directory_files(config)
 
     prompt_template = open(config.prompt_fp).read()
     llm_client = openai.OpenAI(
         api_key = os.environ.get('OPENAI_API_KEY')
     )
+
     for i, js in enumerate(data): 
-        articles = list()
         threshold_date = parse_to_kst(js['metadata']['date'])
 
         prompt = prompt_template.replace('{ARTICLE}', js['source'])
         queries = get_queries(config, llm_client, prompt) 
-        for query_id in queries: 
-            url_args = {'query': urllib.parse.quote(queries[query_id]), 'display': DISPLAY_NUM,}
-            start_id = 1 
-            articles = list()
-            error_cnt, article_num = 0, 0
-            while (start_id < 1000) and (article_num < config.article_num):
-                try:
-                    url_args['start'] = start_id
-                    response = get_response(BASE_URL, 'news', url_args)
-                    res_code = response.getcode() 
-
-                    if res_code == 200: 
-                        res_body = json.loads(response.read().decode())
-                        
-                        for article_id, article in enumerate(res_body['items']): 
-                            if article_num >= config.article_num: break
-                            try:
-                                if not article['link']: continue 
-                                if not is_naver_news(article['link']): 
-                                    print("[SKIP NON-NAVER]", article['link'])
-                                    continue
-                                crawled = crawl_naver_article(article['link'])
-                                article['id'] = crawled['id']
-                                article['content'] = crawled
-                                articles.append(article)
-                                article_num += 1 
-                            except Exception as e: 
-                                print("crawl error:", e, "url:", article.get('link'))
-
-                        
-                        start_id = start_id + DISPLAY_NUM
-                        error_cnt = 0 
-                    else: 
-                        print(f'ERROR CODE: {res_code}')
-                except Exception as e: 
-                        print(e)
-                        error_cnt += 1 
-                        if error_cnt >= ERR_CNT_THR: break 
-                        continue 
         js['retrievals'] = list() 
-        if len(articles) > 0:
-            js['retrievals'] = [ article['id'] for article in articles]
-
+        for query in queries: 
+            url_args = {
+                'query': query, 'display': DISPLAY_NUM, 
+            }
+            articles = crawl(config, url_args)
+            if len(articles) > 0:
+                js['retrievals'].extend([ article['id'] for article in articles])
+        
         os.makedirs(config.write_directory_path, exist_ok=True)
-
         eval_path = os.path.join(config.write_directory_path, 'retrieval_augmented_newses.jsonl')
         with open(eval_path, 'a', encoding='utf-8') as eval_fp: 
             eval_fp.write(json.dumps(js, ensure_ascii=False) + '\n')

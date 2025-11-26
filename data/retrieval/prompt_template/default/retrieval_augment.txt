@@ -2,20 +2,8 @@
 이제 당신에게 주어진 경제 신문 기사를 이해하기 위해 인터넷에 관련 기사를 검색하려고 합니다.
 
 다음의 신문 기사에서 언급한 핵심 내용 및 관련된 맥락을 이해하기 위해 필요한 정보를 검색하기에 적합한 
-query를 [TO_FILL]을 채워 json 파일을 완성함으로써 10개 구성하세요. 각각의 쿼리는 오직 하나의 단어로만 이루어지도록 해주세요.
+query를 10개 구성하여 json 형식으로 주세요. 각각의 쿼리는 오직 하나의 단어로만 이루어지도록 해주세요.
 
 {ARTICLE}
 
 QUERY: 
-{
-    'query1': '[TO_FILL]', 
-    'query2': '[TO_FILL]', 
-    'query3': '[TO_FILL]',
-    'query4': '[TO_FILL]',
-    'query5': '[TO_FILL]',
-    'query6': '[TO_FILL]', 
-    'query7': '[TO_FILL]',
-    'query8': '[TO_FILL]',
-    'query9': '[TO_FILL]',
-    'query10': '[TO_FILL]'
-}
