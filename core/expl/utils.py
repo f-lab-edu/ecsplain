@@ -1,11 +1,13 @@
-from fastapi import FastAPI, Body, HTTPException
+from pathlib import Path
+
+from fastapi import HTTPException
+from langchain_chroma import Chroma
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
-from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-import os
 
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 _LLM, _RETRIEVER = None, None
 _STUFF_CHAIN = None 
@@ -40,8 +42,9 @@ def get_prompt_template(prompt_path):
     return prompt_template
 
 def set_models(config):
-    global _LLM, _RETRIEVER
-    if (_LLM is not None) and (_RETRIEVER is not None): return
+    global _RETRIEVER, _LLM
+    if (_LLM is not None) and (_RETRIEVER is not None): 
+        return
     
     api_key = config.openai_api_key 
     if not api_key: 
@@ -59,19 +62,24 @@ def set_models(config):
             api_key = api_key,
             temperature = config.temperature
         )
-    
+
     emb_model = OpenAIEmbeddings(
         model=config.embedding_model,
         api_key = api_key
     )
+
     vector_store = Chroma(
-        persist_directory=config.chroma_dir,
-        embedding_function=emb_model
+        embedding_function=emb_model,
+        persist_directory=str(
+           BASE_DIR / Path(config.chroma_dir)
+        )
     )
-    _RETRIEVER = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": config.retrieval_k})
+    _RETRIEVER = vector_store.as_retriever(
+        search_type="similarity", search_kwargs={"k": config.retrieval_k}
+    )
 
 def construct_chain(config):
-    global _LLM, _STUFF_CHAIN
+    global _STUFF_CHAIN
 
     variables = get_variables()
     prompt_template = get_prompt_template(config.prompt_path)
@@ -88,11 +96,14 @@ def _ensure_chain(config):
     set_models(config)
     construct_chain(config) 
 
+def get_retrieval(query):
+    docs = _RETRIEVER.invoke(query)
+
+    return docs
+
 
 def get_answer(query):
-    global _RETRIEVER, _STUFF_CHAIN
-
-    docs = _RETRIEVER.invoke(query)
+    docs = get_retrieval(query)
     answer = _STUFF_CHAIN.invoke({'input': query, 'context': docs})
     sources =[
         {'source': d.metadata.get('source'), 'page': d.metadata.get('page')} for d in docs 
