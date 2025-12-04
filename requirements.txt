@@ -26,3 +26,8 @@ requests
 
 # For JSON
 ujson
+
+# For Test
+ruff
+mypy
+pytest
