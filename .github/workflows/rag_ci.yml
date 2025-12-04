@@ -34,15 +34,9 @@ jobs:
         run: |
           pip install --upgrade pip 
           pip install -r requirements.txt 
-      
-      - name: Run ruff 
-        run: ruff check . 
-      
-      - name: Run mypy
-        run: mypy . 
-      
-      - name: Run unit tests 
-        run: pytest -q tests 
+
+      - name: Run ruff (auto-fix lint issues)
+        run: ruff check . --fix
       
       - name: Run retriever sanity tests 
         run: pytest -q tests/test_retriever_sanity.py

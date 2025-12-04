@@ -7,7 +7,6 @@ from pathlib import Path
 
 from openai import OpenAI
 
-
 SYSTEM_PROMPT = """
 You are an assistant that helps manage a codebase.
 
@@ -101,6 +100,10 @@ def ask_llm(system_prompt: str, user_prompt: str) -> str:
         ],
         temperature=0.1,
     )
+
+    if resp.choices[0].message.content is None: 
+        return ""
+
     return resp.choices[0].message.content
 
 
