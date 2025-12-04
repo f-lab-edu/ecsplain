@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,7 +37,7 @@ jobs:
           pip install -r requirements.dev.txt 
       
       - name: Run ruff 
-        run: run check . 
+        run: ruff check . 
       
       - name: Run mypy
         run: mypy . 
@@ -49,6 +49,4 @@ jobs:
         run: pytest -q tests/test_retriever_sanity.py
 
       - name: Run RAG E2E tests 
-        run:
-          pytest -q tests/test_rag_e2e.py
-
+        run: pytest -q tests/test_rag_e2e.py
