@@ -1,6 +1,11 @@
 name: RAG CI 
 
 on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
   rag-ci:
     runs-on: ubuntu-latest
 
