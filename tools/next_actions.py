@@ -139,7 +139,7 @@ git diff:
 
     print("\n===== LLM 기반 후속 작업 추천 =====\n")
     print(text)
-    print("\n결과는 .git/NEXT_ACTIONS.md 에도 저장되었습니다.\n")
+    print(f"\n결과는 {out_path} 에도 저장되었습니다.\n")
 
 
 if __name__ == "__main__":
