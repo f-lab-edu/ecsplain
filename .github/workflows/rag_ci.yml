@@ -1,0 +1,90 @@
+name: RAG CI 
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  rag-ci:
+    runs-on: ubuntu-latest
+
+    env:
+      RAG_API_OPENAI_API_KEY: ${{ secrets.RAG_API_OPENAI_API_KEY }}
+      RAG_API_OPENAI_BASE_URL: ${{ secrets.RAG_API_OPENAI_BASE_URL }}
+      RAG_API_OPENAI_MODEL: ${{ secrets.RAG_API_OPENAI_MODEL }}
+      RAG_API_EMBEDDING_MODEL: ${{ secrets.RAG_API_EMBEDDING_MODEL }}
+      RAG_API_RETRIEVAL_K: ${{ secrets.RAG_API_RETRIEVAL_K }}
+      RAG_API_TEMPERATURE: ${{ secrets.RAG_API_TEMPERATURE }}
+      RAG_API_REASONING_EFFORT: ${{ secrets.RAG_API_REASONING_EFFORT }}
+      RAG_API_CHROMA_DIR: ${{ secrets.RAG_API_CHROMA_DIR }}
+      RAG_API_DATA_DIR: ${{ secrets.RAG_API_DATA_DIR }}
+
+      BASE_BRANCH: ${{ github.base_ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Install dependencies 
+        run: |
+          pip install --upgrade pip 
+          pip install -r requirements.txt 
+      
+      - name: Get changed Python files
+        id: changed-files
+        run: |
+          # BASE_BRANCH (예: develop, main) 를 로컬 브랜치로 가져오기
+          git fetch origin "$BASE_BRANCH":"$BASE_BRANCH"
+
+          # BASE_BRANCH vs HEAD 사이 변경된 .py 파일 (삭제 제외)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$BASE_BRANCH"..HEAD -- '*.py')
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # output 으로 넘기기 (개행 포함)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # 🧹 변경된 파일이 있을 때만 ruff 실행
+
+      # 🧹 변경된 파일이 있을 때만 ruff 실행
+      - name: Run ruff on changed files
+        if: steps.changed-files.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+        run: |
+          echo "CHANGED_FILES:"
+          printf '%s\n' "$CHANGED_FILES"
+          echo
+          echo "$CHANGED_FILES" | xargs -r ruff check
+
+      - name: Run mypy on changed files
+        if: steps.changed-files.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+        run: |
+          echo "CHANGED_FILES:"
+          printf '%s\n' "$CHANGED_FILES"
+          echo
+          echo "$CHANGED_FILES" | xargs -r mypy --config-file mypy.ini
+      
+      - name: Run retriever sanity tests 
+        env:
+          PYTHONPATH: ${{ github.workspace }} 
+        run: pytest -q tests/test_retriever_sanity.py
+
+      - name: Run RAG E2E tests 
+        env:
+          PYTHONPATH: ${{ github.workspace }} 
+        run: pytest -q tests/test_rag_e2e.py

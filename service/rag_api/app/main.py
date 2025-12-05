@@ -1,13 +1,6 @@
-import os
-from fastapi import FastAPI, Body, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
-
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 from core.expl.config import config
 from core.expl.utils import _ensure_chain, get_answer
@@ -23,6 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def _ensure_services():
     _ensure_chain(config)
 
@@ -37,9 +31,11 @@ def home():
     </ul>
     """
 
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
 
 @app.post("/query")
 def query(payload: dict = Body(...)):
