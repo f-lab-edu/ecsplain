@@ -38,18 +38,27 @@ jobs:
       - name: Get changed Python files
         id: changed-files
         run: |
-          # base ref: PR 기준 브랜치 (develop/main 등)
-          git fetch origin ${{ github.base_ref }} --depth=1
+          # PR 기준 base / head 커밋 SHA
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
 
-          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.py')
+          echo "BASE: $BASE_SHA"
+          echo "HEAD: $HEAD_SHA"
 
-          echo "Changed files:"
+          # base~head 사이에서 변경된 .py 파일 (삭제된 파일 제외)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.py')
+
+          echo "Changed files (raw):"
           echo "$CHANGED_FILES"
 
-          # GitHub Actions output으로 넘기기
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # 줄바꿈 -> 공백 치환 (Actions output으로 넘기기 위해)
+          CHANGED_FILES_ONELINE=$(echo "$CHANGED_FILES" | tr '\n' ' ')
+
+          echo "Changed files (oneline):"
+          echo "$CHANGED_FILES_ONELINE"
+
+          # GitHub Actions output으로 전달
+          echo "files=$CHANGED_FILES_ONELINE" >> "$GITHUB_OUTPUT"
 
       # 🧹 변경된 파일이 있을 때만 ruff 실행
       - name: Run ruff on changed files
