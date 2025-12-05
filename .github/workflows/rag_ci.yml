@@ -35,8 +35,32 @@ jobs:
           pip install --upgrade pip 
           pip install -r requirements.txt 
 
-      - name: Run ruff (auto-fix lint issues)
-        run: ruff check . --fix
+      - name: Get changed Python files
+        id: changed-files
+        run: |
+          # base ref: PR 기준 브랜치 (develop/main 등)
+          git fetch origin ${{ github.base_ref }} --depth=1
+
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.py')
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # GitHub Actions output으로 넘기기
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # 🧹 변경된 파일이 있을 때만 ruff 실행
+      - name: Run ruff on changed files
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "$CHANGED_FILES" | xargs ruff check
+
+      - name: Run mypy on changed files
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "$CHANGED_FILES" | xargs mypy --config-file mypy.ini
       
       - name: Run retriever sanity tests 
         run: pytest -q tests/test_retriever_sanity.py
