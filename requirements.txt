@@ -28,6 +28,6 @@ requests
 ujson
 
 # For Test
-ruff
-mypy
+ruff == 0.14.7
+mypy == 1.19.0
 pytest
