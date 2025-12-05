@@ -80,7 +80,11 @@ jobs:
           echo "$CHANGED_FILES" | xargs -r mypy --config-file mypy.ini
       
       - name: Run retriever sanity tests 
+        env:
+          PYTHONPATH: ${{ github.workspace }} 
         run: pytest -q tests/test_retriever_sanity.py
 
       - name: Run RAG E2E tests 
+        env:
+          PYTHONPATH: ${{ github.workspace }} 
         run: pytest -q tests/test_rag_e2e.py
