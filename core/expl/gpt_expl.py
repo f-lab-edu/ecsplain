@@ -30,6 +30,7 @@ def get_config():
 def main(config):
     if config.api_key is None:
         config.api_key = os.environ.get("OPENAI_API_KEY")
+
     ensure_chain(config)
 
     data = read_data(config)
@@ -44,6 +45,7 @@ def main(config):
                 print(e)
                 if "limit" not in str(e):
                     break
+
                 time.sleep(2)
 
     write_data(config, data)

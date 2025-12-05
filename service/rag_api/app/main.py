@@ -16,7 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 def _ensure_services():
     _ensure_chain(config)
 
@@ -31,11 +30,9 @@ def home():
     </ul>
     """
 
-
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
-
 
 @app.post("/query")
 def query(payload: dict = Body(...)):
@@ -51,3 +48,4 @@ def query(payload: dict = Body(...)):
         raise
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
