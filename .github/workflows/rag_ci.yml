@@ -61,29 +61,23 @@ jobs:
       # 🧹 변경된 파일이 있을 때만 ruff 실행
       - name: Run ruff on changed files
         if: steps.changed-files.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
-          echo "Running ruff on:"
-          printf '%s\n' "${{ steps.changed-files.outputs.files }}"
-          ruff check ${{ steps.changed-files.outputs.files }}
+          echo "CHANGED_FILES:"
+          printf '%s\n' "$CHANGED_FILES"
+          echo
+          echo "$CHANGED_FILES" | xargs -r ruff check
 
       - name: Run mypy on changed files
         if: steps.changed-files.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
-          echo "Running mypy on:"
-          printf '%s\n' "${{ steps.changed-files.outputs.files }}"
-          mypy --config-file mypy.ini ${{ steps.changed-files.outputs.files }}
-      
-      - name: Run retriever sanity tests 
-        run: pytest -q tests/test_retriever_sanity.py
-
-      - name: Run RAG E2E tests 
-        run: pytest -q tests/test_rag_e2e.py
-
-
-      - name: Run mypy on changed files
-        if: steps.changed-files.outputs.files != ''
-        run: |
-          echo "$CHANGED_FILES" | xargs mypy --config-file mypy.ini
+          echo "CHANGED_FILES:"
+          printf '%s\n' "$CHANGED_FILES"
+          echo
+          echo "$CHANGED_FILES" | xargs -r mypy --config-file mypy.ini
       
       - name: Run retriever sanity tests 
         run: pytest -q tests/test_retriever_sanity.py
