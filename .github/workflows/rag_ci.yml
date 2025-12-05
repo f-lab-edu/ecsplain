@@ -21,9 +21,13 @@ jobs:
       RAG_API_CHROMA_DIR: ${{ secrets.RAG_API_CHROMA_DIR }}
       RAG_API_DATA_DIR: ${{ secrets.RAG_API_DATA_DIR }}
 
+      BASE_BRANCH: ${{ github.base_ref }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,33 +38,25 @@ jobs:
         run: |
           pip install --upgrade pip 
           pip install -r requirements.txt 
-
+      
       - name: Get changed Python files
         id: changed-files
         run: |
-          # PR 기준 base / head 커밋 SHA
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.sha }}"
+          # BASE_BRANCH (예: develop, main) 를 로컬 브랜치로 가져오기
+          git fetch origin "$BASE_BRANCH":"$BASE_BRANCH"
 
-          echo "BASE: $BASE_SHA"
-          echo "HEAD: $HEAD_SHA"
+          # BASE_BRANCH vs HEAD 사이 변경된 .py 파일 (삭제 제외)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$BASE_BRANCH"..HEAD -- '*.py')
 
-          # base~head 사이에서 변경된 .py 파일 (삭제된 파일 제외)
-          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.py')
-
-          echo "Changed files (raw):"
+          echo "Changed files:"
           echo "$CHANGED_FILES"
 
-          # 줄바꿈 -> 공백 치환 (Actions output으로 넘기기 위해)
-          CHANGED_FILES_ONELINE=$(echo "$CHANGED_FILES" | tr '\n' ' ')
+          # output 으로 넘기기 (개행 포함)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-          echo "Changed files (oneline):"
-          echo "$CHANGED_FILES_ONELINE"
-
-          # GitHub Actions output으로 전달
-          echo "files=$CHANGED_FILES_ONELINE" >> "$GITHUB_OUTPUT"
-
-      # 🧹 변경된 파일이 있을 때만 ruff 실행
+          # 🧹 변경된 파일이 있을 때만 ruff 실행
       - name: Run ruff on changed files
         if: steps.changed-files.outputs.files != ''
         run: |
