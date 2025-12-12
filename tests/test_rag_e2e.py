@@ -2,32 +2,27 @@ import json
 from pathlib import Path
 
 import pytest
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain_openai import OpenAIEmbeddings
 
 from core.expl.config import config
 from core.expl.utils import _ensure_chain, get_answer
+from tests.utils import prepare_test
 
-GOLDEN_PATH = Path("data/expl/golden.jsonl")
-
-
-def load_jsonl(golden_path):
-    cases = list()
-    with golden_path.open("r", encoding="utf-8") as read_fp:
-        for line in read_fp:
-            line = line.strip()
-            if not line:
-                continue
-            js = json.loads(line)
-            cases.append(js)
-
-    return cases
+PROJECT_ROOT = Path(__file__).resolve().parents[0]
+TEST_DATA_PATH = PROJECT_ROOT / Path("data/text/test_retrieval_augmented_newses.jsonl")
+TEST_POOL_PATH = PROJECT_ROOT / Path("data/text/test_retrieval_pool.jsonl")
+TEST_VECTOR_PATH = PROJECT_ROOT / Path("data/chroma_db")
 
 
-@pytest.mark.parametrize("case", load_jsonl(GOLDEN_PATH))
-def test_rag_e2e_basic(case):
+@pytest.mark.parametrize("doc", prepare_test(config, TEST_DATA_PATH, TEST_POOL_PATH, TEST_VECTOR_PATH))
+def test_rag_e2e_basic(doc):
     _ensure_chain(config)
 
-    question = case["source"]
+    question = doc.page_content
     answer, source = get_answer(question)
+
     assert answer is not None, "답변이 None"
 
     answer = answer.strip()
