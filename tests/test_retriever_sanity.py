@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -15,7 +14,9 @@ TEST_VECTOR_PATH = PROJECT_ROOT / Path("data/chroma_db")
 
 
 
-@pytest.mark.parametrize("doc", prepare_test(config, TEST_DATA_PATH, TEST_POOL_PATH, TEST_VECTOR_PATH))
+@pytest.mark.parametrize(
+    "doc", prepare_test(config, TEST_DATA_PATH, TEST_POOL_PATH, TEST_VECTOR_PATH)
+)
 def test_at_least_one_retrieval(doc):
     _ensure_chain(config)
 

@@ -4,7 +4,6 @@ on:
   pull_request:
     branches: [develop]
     types: [opened, synchronize, reopened]
-  workflow_dispatch:
 
 jobs:
   rag-ci:
@@ -78,13 +77,31 @@ jobs:
           printf '%s\n' "$CHANGED_FILES"
           echo
           echo "$CHANGED_FILES" | xargs -r mypy --config-file mypy.ini
+
+      - name: Install AWS CLI v2.32.11
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.32.11.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+
+      - name: Download test data 
+        run: |
+          mkdir -p tests/data/text
+          mkdir -p tests/data/chroma_dir
+          aws s3 cp s3://ecsplainer-crawl-bucket/github_test/ tests/data/text --recursive
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-northeast-2
       
       - name: Run retriever sanity tests 
         env:
           PYTHONPATH: ${{ github.workspace }} 
-        run: pytest -q tests/test_retriever_sanity.py
+        run: python3 -m pytest tests/test_retriever_sanity.py
 
       - name: Run RAG E2E tests 
         env:
           PYTHONPATH: ${{ github.workspace }} 
-        run: pytest -q tests/test_rag_e2e.py
+        run: python3 -m pytest tests/test_rag_e2e.py

@@ -1,10 +1,6 @@
-import json
 from pathlib import Path
 
 import pytest
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from core.expl.config import config
 from core.expl.utils import _ensure_chain, get_answer
@@ -16,7 +12,9 @@ TEST_POOL_PATH = PROJECT_ROOT / Path("data/text/test_retrieval_pool.jsonl")
 TEST_VECTOR_PATH = PROJECT_ROOT / Path("data/chroma_db")
 
 
-@pytest.mark.parametrize("doc", prepare_test(config, TEST_DATA_PATH, TEST_POOL_PATH, TEST_VECTOR_PATH))
+@pytest.mark.parametrize(
+    "doc", prepare_test(config, TEST_DATA_PATH, TEST_POOL_PATH, TEST_VECTOR_PATH)
+)
 def test_rag_e2e_basic(doc):
     _ensure_chain(config)
 
