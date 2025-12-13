@@ -1,0 +1,33 @@
+# FastAPI / 서버
+fastapi
+uvicorn[standard]
+
+# LangChain & AI
+langchain
+langchain-core
+langchain-openai
+langchain-chroma
+chromadb
+
+# OpenAI SDK
+openai>=1.0.0
+
+# Embeddings & Vector DB
+faiss-cpu
+
+# Pydantic
+pydantic
+pydantic-settings
+
+# Utility
+python-dotenv
+tqdm
+requests
+
+# For JSON
+ujson
+
+# For Test
+ruff == 0.14.7
+mypy == 1.19.0
+pytest
