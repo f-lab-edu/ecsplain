@@ -1,29 +1,32 @@
 import json
-import dateutil
-from functools import lru_cache
-import os
 import random
-import requests
-import time 
-from typing import Any, Optional 
+import time
 import urllib
+from functools import lru_cache
+from typing import Any, Dict, Literal, Optional, Union
 from urllib.parse import urlparse
-from bs4 import BeautifulSoup 
+from zoneinfo import ZoneInfo
 
 import boto3
+import dateutil
 import openai
+import requests
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 from user_agent import generate_user_agent
 
-from preprocess.retrieval.crawl.models import  NewsSearchItem, CrawledArticle
 from preprocess.retrieval.config import (
-    NaverAPIConfig, NaverNewsCrawlConfig,
-    AWSS3Config
+    AWSS3Config,
+    NaverAPIConfig,
+    NaverNewsCrawlConfig,
+    get_aws_s3_config,
+    get_naver_api_config,
+    get_naver_news_crawl_config,
 )
-from preprocess.retrieval.config import (
-    get_qgen_config, 
-    get_naver_api_config, get_naver_news_crawl_config,
-    get_aws_conn_config, get_aws_s3_config
-)
+from preprocess.retrieval.crawl.models import CrawledArticle, NewsSearchItem
+
+KST = ZoneInfo("Asia/Seoul")
+
 
 class HTTPClient: 
 
@@ -122,7 +125,8 @@ class NaverAPIClient(HTTPClient):
         while True:
             try:
                 raw_queries = self.generate_queries(prompt)
-                if raw_queries is None: continue 
+                if raw_queries is None: 
+                    continue 
                 queries = json.loads(raw_queries.strip())['queries']
                 break
             except Exception as e: 
@@ -201,8 +205,7 @@ class CrawlClient(HTTPClient):
     ) -> None:
         super().__init__(config)
 
-        assert (
-            proxy_num < config.max_proxy_num, 
+        assert proxy_num < config.max_proxy_num, (
             f'Proxy 서버의 개수는 {self.config.max_proxy_num} 이하여야 합니다.' 
         ) 
         
@@ -230,8 +233,10 @@ class CrawlClient(HTTPClient):
 
     def _pick_user_agent(self) -> str: 
         self.user_agent = random.choice(self.user_agents)
+
+        return self.user_agent
     
-    def _pick_proxy(self) -> str: 
+    def _pick_proxy(self) -> Dict: 
         proxy_url = self.proxies[self._proxy_id]
         self._proxy_id =  (self._proxy_id + 1) % self.proxy_num 
 
@@ -242,12 +247,15 @@ class CrawlClient(HTTPClient):
     def _set_cookies(
         self, 
         url: str, 
-        wait_until: str = "networkidle",
+        wait_until: Union[
+            Literal['commit', 'domcontentloaded', 'load', 'networkidle'], 
+            None
+        ] = "networkidle",
         wait_for_selector: Optional[str] = None, 
         timeout: int = 1500,
     ) -> str:
         with sync_playwright() as p: 
-            browser = p.chromimum.launch(headless=True)
+            browser = p.chromium.launch(headless=True)
             context = browser.new_context(user_agent=self._pick_user_agent())
             page = context.new_page()
 
@@ -340,7 +348,7 @@ class NaverNewsCrawlClient(CrawlClient):
         
         return dt
     
-    def crawl_naver_article(self, url: str) -> dict:
+    def crawl_naver_article(self, url: str) -> CrawledArticle:
         """
         네이버 뉴스 기사 1개 크롤링.
         반환: {
@@ -384,7 +392,9 @@ class NaverNewsCrawlClient(CrawlClient):
             content = soup.get_text("\n", strip=True)
         else:
             # 불필요한 태그 제거 (광고, 캡션 등)
-            for tag in content_el.select("script, style, span.end_photo_org, div.media_end_head_info_variety"):
+            for tag in content_el.select(
+                "script, style, span.end_photo_org, div.media_end_head_info_variety"
+            ):
                 tag.decompose()
             content = content_el.get_text("\n", strip=True)
 
@@ -398,20 +408,17 @@ class NaverNewsCrawlClient(CrawlClient):
         )
         if meta_time and meta_time.has_attr("content"):
             try:
-                published_at = _parse_to_kst(meta_time["content"])
+                published_at = self._parse_to_kst(meta_time["content"])
             except Exception:
                 published_at = None
 
-        # 일부 네이버 뉴스는 span.media_end_head_info_datestamp 같은 데 들어있기도 함
         if published_at is None:
             time_span = soup.select_one("span.media_end_head_info_datestamp_time") or \
                         soup.select_one("span.t11")
             if time_span:
                 raw_time = time_span.get_text(strip=True)
-                # 예: '2025-11-15 10:23', '2025.11.15. 오후 03:12' 등
-                # 포맷이 제각각이라 dateutil로 파싱
                 try:
-                    published_at = _parse_to_kst(raw_time)
+                    published_at = self._parse_to_kst(raw_time)
                 except Exception:
                     published_at = None
 
@@ -427,7 +434,8 @@ class NaverNewsCrawlClient(CrawlClient):
         error_cnt = 0 
         articles = list()
         for metainfo in metainfos: 
-            if not metainfo.url: continue 
+            if not metainfo.url: 
+                continue 
             if not self._is_naver_news(metainfo.url):
                 print(f"[SKIP NON-NAVER]: {metainfo.url}")
                 continue
@@ -468,7 +476,7 @@ def get_aws_s3_client():
         'region_name': config.conn_config.default_region,
     }
     if config.endpoint_url: 
-        params['endpoint_url'] = endpoint_url 
+        params['endpoint_url'] = config.endpoint_url 
 
     return boto3.client('s3', **params)
 

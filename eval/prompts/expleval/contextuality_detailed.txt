@@ -163,7 +163,7 @@ Evaluation Form (scores ONLY):
 
 Source Text: 
 
-{{Document}}
+{Document}
 
 - 기본 개념 
 [TO_FILL]
@@ -176,7 +176,7 @@ Source Text:
 
 Explanation: 
 
-{{Explanation}}
+{Explanation}
 
 - 기본 개념 
 [TO_FILL]

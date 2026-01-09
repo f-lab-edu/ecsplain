@@ -31,3 +31,15 @@ ujson
 ruff == 0.14.7
 mypy == 1.19.0
 pytest
+
+bs4
+user-agent
+boto3
+
+jinja2
+
+playwright
+
+types-python-dateutil
+types-requests
+types-PyYAML

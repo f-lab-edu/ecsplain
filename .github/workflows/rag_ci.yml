@@ -105,3 +105,8 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }} 
         run: python3 -m pytest tests/test_rag_e2e.py
+
+      - name: RUN LLM eval tests
+        env: 
+          PYTHONPATH: ${{ github.workspace }} 
+        run: python3 -m pytest tests/test_llm_eval.py
