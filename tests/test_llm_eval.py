@@ -19,7 +19,6 @@ def test_llm_eval(run_output):
 
     eval_input = run_output.to_eval() 
     report = eval_engine.run(eval_input)
-    print([score for score in report.scores])
 
     assert all([
         isinstance(score, int) or isinstance(score, float)  for score in report.scores.values()

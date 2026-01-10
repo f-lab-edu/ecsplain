@@ -3,7 +3,7 @@ fastapi
 uvicorn[standard]
 
 # LangChain & AI
-langchain
+langchain==1.2.0
 langchain-core
 langchain-openai
 langchain-chroma

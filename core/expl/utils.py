@@ -75,12 +75,12 @@ def set_models(config):
     )
 
 
-def construct_chain(config, output_parser=False):
+def construct_chain(config):
     global _STUFF_CHAIN
 
     variables = get_variables()
     prompt_template = get_prompt_template(config.prompt_path)
-    if output_parser: 
+    if config.output_parser: 
         output_parser = StrOutputParser()
         _STUFF_CHAIN = variables | prompt_template | (lambda p: _LLM.invoke(p)) | output_parser
     else: 
