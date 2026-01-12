@@ -1,7 +1,8 @@
-from dataclasses import dataclass, asdict
-from datetime import datetime 
 import json
-from typing import Optional 
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Optional
+
 
 @dataclass
 class NewsSearchItem:

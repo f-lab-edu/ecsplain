@@ -38,10 +38,12 @@ def get_prompt_template(prompt_path):
     with open(prompt_path, "r") as read_fp:
         raw_template = read_fp.read()
 
-    prompt_template = ChatPromptTemplate.from_messages([("human", raw_template)])
+    prompt_template = ChatPromptTemplate.from_messages(
+        [("human", raw_template)],
+        template_format="mustache"
+    )
 
     return prompt_template
-
 
 def set_models(config):
     global _RETRIEVER, _LLM
@@ -78,9 +80,11 @@ def construct_chain(config):
 
     variables = get_variables()
     prompt_template = get_prompt_template(config.prompt_path)
-    output_parser = StrOutputParser()
-
-    _STUFF_CHAIN = variables | prompt_template | (lambda p: _LLM.invoke(p)) | output_parser
+    if config.output_parser: 
+        output_parser = StrOutputParser()
+        _STUFF_CHAIN = variables | prompt_template | (lambda p: _LLM.invoke(p)) | output_parser
+    else: 
+        _STUFF_CHAIN = variables | prompt_template | (lambda p: _LLM.invoke(p))
 
 
 def _ensure_chain(config):
@@ -96,7 +100,9 @@ def get_retrieval(query):
 
 def get_answer(query):
     docs = get_retrieval(query)
-    answer = _STUFF_CHAIN.invoke({"input": query, "context": docs})
+    answer = _STUFF_CHAIN.invoke({
+        "input": query, "context": docs
+    })
     sources = [{"source": d.metadata.get("source"), "page": d.metadata.get("page")} for d in docs]
 
     return answer, sources

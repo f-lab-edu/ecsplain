@@ -1,9 +1,9 @@
-from pathlib import Path
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, Field
-from dotenv import load_dotenv
-from typing import List
 from functools import lru_cache
+from pathlib import Path
+from typing import List, Optional
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from preprocess.retrieval.utils import get_latest_datetime_dir, get_latest_uuid_dir
 
@@ -30,10 +30,10 @@ class QgenConfig(BaseSettings):
     @field_validator('prompt_path')
     @classmethod
     def resolve_prompt(cls, v: str) -> Path: 
-        v = Path(v)
-        if not v.is_absolute():
-            v = (PROJECT_ROOT / v).resolve() 
-        return v
+        v_path = Path(v)
+        if not v_path.is_absolute():
+            v_path = (PROJECT_ROOT / v).resolve() 
+        return v_path
 
 class NaverAPIConfig(BaseSettings):
     model_config = SettingsConfigDict(
@@ -168,13 +168,13 @@ class AWSS3Config(StorageConfig):
     conn_config: AWSConnectionConfig
 
     service_type: str = 's3'
-    endpoint_url: str
+    endpoint_url: Optional[str] = None
 
     bucket: str
     retrieval_prefix: str 
 
-    ext: str = 'jsonl'
-    content_type: str = 'application/x-ndjson'
+    ext: str
+    content_type: str
 
 class MultiStorageConfig(StorageConfig):
     model_config = SettingsConfigDict(

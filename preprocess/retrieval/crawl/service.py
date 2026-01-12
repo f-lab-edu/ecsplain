@@ -1,5 +1,6 @@
-from preprocess.retrieval.crawl.clients import get_client, NaverAPIClient, NaverNewsCrawlClient
-from preprocess.retrieval.crawl.models import NewsSearchItem, CrawledArticle
+from typing import Dict, List, Tuple
+
+from preprocess.retrieval.crawl.clients import get_client
 
 
 class NaverNewsService:
@@ -13,7 +14,7 @@ class NaverNewsService:
         self.crawl_client = get_client(self.config.crawl_config)
 
     
-    def fetch_news(self, data) -> list[CrawledArticle]:
+    def fetch_news(self, data) -> Tuple[Dict, List]:
         metainfos = self.api_client.search_metainfos(data)
         newses = self.crawl_client.crawl_naver_articles(metainfos)
         data['retrievals'] = [ news.id for news in newses ]

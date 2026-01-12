@@ -1,17 +1,5 @@
-import argparse
-from bs4 import BeautifulSoup 
-import dateutil
-from datetime import datetime
-import json 
-import os 
-import openai
-import requests
-import sys 
-import time 
-import urllib
-from urllib.parse import urlparse
 import uuid
-from pathlib import Path
+from datetime import datetime
 
 from preprocess.retrieval.config import get_config
 from preprocess.retrieval.crawl.service import NaverNewsService
@@ -62,7 +50,6 @@ def main(service_config, local_config, s3_config):
             pool_s3_key, content, s3_config.content_type
         )
 
-        import pdb;pdb.set_trace()
         meta_key = local_storage.full_key('meta', date_str, run_id, 'json')
         meta_data = {
             'date_str': date_str, 'run_id': run_id,
@@ -73,8 +60,8 @@ def main(service_config, local_config, s3_config):
             meta_key, meta_data, 'json', 
             mode = 'w'
         )
-    except Exception as e: 
-        print(f"S3에 저장 실패")
+    except Exception: 
+        print("S3에 저장 실패")
         if s3_storage.exists(news_s3_key):
             print(f"❌ S3에서 {news_s3_key} 롤백")
             s3_storage.delete(news_s3_key)
@@ -83,7 +70,6 @@ def main(service_config, local_config, s3_config):
             s3_storage.delete(pool_s3_key)
     
 if __name__ == '__main__':
-    import pdb;pdb.set_trace()
     service_config = get_config('news_service')
 
     local_config = get_config('local_storage')

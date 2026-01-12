@@ -25,4 +25,6 @@ class Config(BaseSettings):
 
     prompt_path: str = "./core/expl/prompts/expl_detailed.txt"
 
+    output_parser: bool
+
 config = Config()

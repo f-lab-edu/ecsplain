@@ -261,7 +261,7 @@ Evaluation Form (scores ONLY):
 
 Explanation:
 
-{{Explanation}}
+{Explanation}
 
 [토픽 추출]
 [TO_FILL]

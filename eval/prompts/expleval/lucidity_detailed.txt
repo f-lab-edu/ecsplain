@@ -170,7 +170,7 @@ Evaluation Form (scores ONLY):
 
 Source Text: 
 
-{{Document}}
+{Document}
 
 [토픽 추출]
 [TO_FILL]
@@ -185,7 +185,7 @@ Source Text:
 
 Explanation:
 
-{{Explanation}}
+{Explanation}
 
 [예시 확인]
 [TO_FILL]
